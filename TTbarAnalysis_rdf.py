@@ -47,6 +47,21 @@ def define_trijet_combinations(df: ROOT.RDataFrame) -> ROOT.RDataFrame:
 
     return df
 
+def define_lead_jet_variables(df: ROOT.RDataFrame) -> ROOT.RDataFrame:
+
+    df = df.Define("leadJetPt","jet_pt.empty()? 0.f : jet_pt[0]")
+    df = df.Define("leadJetEta", "jet_eta.empty()? 0.f : jet_eta[0]")
+    df = df.Define("leadJetPhi", "jet_phi.empty()? 0.f : jet_phi[0]")
+
+    df = df.Define("subLeadJetPt","jet_pt.empty()? 0.f : jet_pt[1]")
+    df = df.Define("subLeadJetEta", "jet_eta.empty()? 0.f : jet_eta[1]")
+    df = df.Define("subLeadJetPhi", "jet_phi.empty()? 0.f : jet_phi[1]")
+
+    df = df.Define("subSubLeadJetPt","jet_pt.empty()? 0.f : jet_pt[2]")
+    df = df.Define("subSubLeadJetEta", "jet_eta.empty()? 0.f : jet_eta[2]")
+    df = df.Define("subSubLeadJetPhi", "jet_phi.empty()? 0.f : jet_phi[2]")
+
+    return df
 
 def define_trijet_mass(df: ROOT.RDataFrame) -> ROOT.RDataFrame:
 
@@ -76,40 +91,17 @@ def main(dataset, out_dir):
     #df = df.Define("muon_mask", "muon_pt > 0") # apply muon selections here
     df = df.Define("jet_mask", "jet_pt > 20") # apply jet selections here
     #df = df.Filter("Sum(electron_mask) + Sum(muon_mask) == 1") # require exactly one valid electron or muon
-    '''
-    df_test = df.Filter("Sum(jet_mask) >= 1")
-    events_1 = df_test.Count().GetValue()
-    print("Number of Events with 1 Jet with pT>20 = ", events_1)
-    print("Fraction of Events with 1 Jet with pT>20 = ", events_1/events_pre)
-    df_test = df.Filter("Sum(jet_mask) >= 2")
-    events_2 = df_test.Count().GetValue()
-    print("Number of Events with 2 Jets with pT>20 = ", events_2)
-    print("Fraction of Events with 2 Jet with pT>20 = ", events_2/events_pre)
-    df_test = df.Filter("Sum(electron_mask) + Sum(muon_mask)>=1")
-    events_lep = df_test.Count().GetValue()
-    print("Number of Events with >=1 Lepton = ", events_lep)
-    print("Fraction of Events with >=1 Lepton = ", events_lep/events_pre)
-    df_test = df.Filter("(Sum(electron_mask) + Sum(muon_mask)>=1) && (Sum(jet_mask)>=1)")
-    events_1_lep = df_test.Count().GetValue()
-    print("Number of Events with >=1 Lepton and >1 Jet with pT>20 = ", events_1_lep)
-    print("Fraction of Events with >=1 Lepton and >1 Jet with pT>20 = ", events_1_lep/events_pre)
-    df_test = df.Filter("(Sum(electron_mask) + Sum(muon_mask)>=1) && (Sum(jet_mask)>=2)")
-    events_2_lep = df_test.Count().GetValue()
-    print("Number of Events with >=1 Lepton and >2 Jet with pT>20 = ", events_2_lep)
-    print("Fraction of Events with >=1 Lepton and >2 Jet with pT>20 = ", events_2_lep/events_pre)
-    '''
-
 
     df = df.Filter("Sum(jet_mask) >= 3") # require at least four valid jets
 
-    df_tight = df.Filter("CICADAScore>=115")
-    df_nom = df.Filter("CICADAScore>=110")
-    df_loose = df.Filter("CICADAScore>=106")
+    #df_tight = df.Filter("CICADAScore>=115")
+    #df_nom = df.Filter("CICADAScore>=110")
+    #df_loose = df.Filter("CICADAScore>=106")
 
     print("Number of Events After Filter = ", df.Count().GetValue())
-    print("Number of Events After Filter (Loose) = ", df_loose.Count().GetValue())
-    print("Number of Events After Filter (Med) = ", df_nom.Count().GetValue())
-    print("Number of Events After Filter (Tight) = ", df_tight.Count().GetValue())
+    #print("Number of Events After Filter (Loose) = ", df_loose.Count().GetValue())
+    #print("Number of Events After Filter (Med) = ", df_nom.Count().GetValue())
+    #print("Number of Events After Filter (Tight) = ", df_tight.Count().GetValue())
 
 
     # define trijet mass (top mass reconstruction)
@@ -142,6 +134,53 @@ def main(dataset, out_dir):
         scoreStr,
         "Trijet_mass"
     )
+    hist.Write()
+
+    df = define_lead_jet_variables(df)
+
+    print("Creating and writing histogram for leading jet pt")
+    histModel = ROOT.RDF.TH2DModel("LeadJetPt", "LeadJetPt", 100, 0, 256, 100, 0, 500)
+    hist = df.Histo2D(histModel, scoreStr, "leadJetPt")
+    hist.Write()
+
+    print("Creating and writing histogram for leading jet eta")
+    histModel = ROOT.RDF.TH2DModel("LeadJetEta", "LeadJetEta", 100, 0, 256, 50, -2.4, 2.4)
+    hist = df.Histo2D(histModel, scoreStr, "leadJetEta")
+    hist.Write()
+
+    print("Creating and writing histogram for leading jet phi")
+    histModel = ROOT.RDF.TH2DModel("LeadJetPhi", "LeadJetPhi", 100, 0, 256, 50, -3.14, 3.14)
+    hist = df.Histo2D( histModel, scoreStr, "leadJetPhi")
+    hist.Write()
+
+    print("Creating and writing histogram for subleading jet pt")
+    histModel = ROOT.RDF.TH2DModel("SubLeadJetPt", "SubLeadJetPt", 100, 0, 256, 100, 0, 500)
+    hist = df.Histo2D(histModel, scoreStr, "subLeadJetPt")
+    hist.Write()
+
+    print("Creating and writing histogram for subleading jet eta")
+    histModel = ROOT.RDF.TH2DModel("SubLeadJetEta", "SubLeadJetEta", 100, 0, 256, 50, -2.4, 2.4)
+    hist = df.Histo2D(histModel, scoreStr, "subLeadJetEta")
+    hist.Write()
+
+    print("Creating and writing histogram for subleading jet phi")
+    histModel = ROOT.RDF.TH2DModel("SubLeadJetPhi", "SubLeadJetPhi", 100, 0, 256, 50, -3.14, 3.14)
+    hist = df.Histo2D( histModel, scoreStr, "subLeadJetPhi")
+    hist.Write()
+
+    print("Creating and writing histogram for subsubleading jet pt")
+    histModel = ROOT.RDF.TH2DModel("SubSubLeadJetPt", "SubSubLeadJetPt", 100, 0, 256, 100, 0, 500)
+    hist = df.Histo2D(histModel, scoreStr, "subSubLeadJetPt")
+    hist.Write()
+
+    print("Creating and writing histogram for subsubleading jet eta")
+    histModel = ROOT.RDF.TH2DModel("SubSubLeadJetEta", "SubSubLeadJetEta", 100, 0, 256, 50, -2.4, 2.4)
+    hist = df.Histo2D(histModel, scoreStr, "subSubLeadJetEta")
+    hist.Write()
+
+    print("Creating and writing histogram for subsubleading jet phi")
+    histModel = ROOT.RDF.TH2DModel("SubSubLeadJetPhi", "SubSubLeadJetPhi", 100, 0, 256, 50, -3.14, 3.14)
+    hist = df.Histo2D( histModel, scoreStr, "subSubLeadJetPhi")
     hist.Write()
 
 
