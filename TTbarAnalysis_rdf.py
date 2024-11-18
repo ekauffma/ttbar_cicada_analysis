@@ -19,16 +19,18 @@ def define_trijet_combinations(df: ROOT.RDataFrame) -> ROOT.RDataFrame:
     df = df.Define("jet_p4", "ConstructP4(jet_pt, jet_eta, jet_phi, jet_mass)")
 
     df = df.Define("Trijet_idx", "Combinations(jet_pt, 3)")
+    
+    df = df.Define("Trijet_candidate_eta0", "Take(jet_eta, Trijet_idx[0])")
+    df = df.Define("Trijet_candidate_eta1", "Take(jet_eta, Trijet_idx[1])")
+    df = df.Define("Trijet_candidate_eta2", "Take(jet_eta, Trijet_idx[2])")
+    df = df.Define("Trijet_candidate_phi0", "Take(jet_phi, Trijet_idx[0])")
+    df = df.Define("Trijet_candidate_phi1", "Take(jet_phi, Trijet_idx[1])")
+    df = df.Define("Trijet_candidate_phi2", "Take(jet_phi, Trijet_idx[2])")
+    df = df.Define("Trijet_candidate_btag0", "Take(jet_btagDeepCSV, Trijet_idx[0])")
+    df = df.Define("Trijet_candidate_btag1", "Take(jet_btagDeepCSV, Trijet_idx[1])")
+    df = df.Define("Trijet_candidate_btag2", "Take(jet_btagDeepCSV, Trijet_idx[2])")
 
-    df = df.Define(
-        "Trijet_btag",
-        """
-            auto j1_btagDeepCSV = Take(jet_btagDeepCSV, Trijet_idx[0]);
-            auto j2_btagDeepCSV = Take(jet_btagDeepCSV, Trijet_idx[1]);
-            auto j3_btagDeepCSV = Take(jet_btagDeepCSV, Trijet_idx[2]);
-            return j1_btagDeepCSV > 0.5 || j2_btagDeepCSV > 0.5 || j3_btagDeepCSV > 0.5;
-            """,
-    )
+    df = df.Define("Trijet_btag", "(Trijet_candidate_btag0 > 0.5) || (Trijet_candidate_btag1 > 0.5) || (Trijet_candidate_btag2 > 0.5)")
 
     df = df.Define(
         "Trijet_p4",
@@ -65,7 +67,19 @@ def define_lead_jet_variables(df: ROOT.RDataFrame) -> ROOT.RDataFrame:
 
 def define_trijet_mass(df: ROOT.RDataFrame) -> ROOT.RDataFrame:
 
-    df = df.Define("Trijet_mass", "Trijet_p4[ArgMax(Trijet_pt)].M()")
+    df = df.Define("Trijet_maxIdx", "ArgMax(Trijet_pt)")
+    
+    df = df.Define("Trijet_eta0", "Trijet_candidate_eta0[Trijet_maxIdx]")
+    df = df.Define("Trijet_eta1", "Trijet_candidate_eta1[Trijet_maxIdx]")
+    df = df.Define("Trijet_eta2", "Trijet_candidate_eta2[Trijet_maxIdx]")
+    df = df.Define("Trijet_phi0", "Trijet_candidate_phi0[Trijet_maxIdx]")
+    df = df.Define("Trijet_phi1", "Trijet_candidate_phi1[Trijet_maxIdx]")
+    df = df.Define("Trijet_phi2", "Trijet_candidate_phi2[Trijet_maxIdx]")
+    df = df.Define("Trijet_btag0", "Trijet_candidate_btag0[Trijet_maxIdx]")
+    df = df.Define("Trijet_btag1", "Trijet_candidate_btag1[Trijet_maxIdx]")
+    df = df.Define("Trijet_btag2", "Trijet_candidate_btag2[Trijet_maxIdx]")
+    
+    df = df.Define("Trijet_mass", "Trijet_p4[Trijet_maxIdx].M()")
 
     return df
 
@@ -89,10 +103,12 @@ def main(dataset, out_dir):
     ##### general event selection #####
     #df = df.Define("electron_mask", "electron_pt > 0") # apply electron selections here
     #df = df.Define("muon_mask", "muon_pt > 0") # apply muon selections here
-    df = df.Define("jet_mask", "jet_pt > 20") # apply jet selections here
     #df = df.Filter("Sum(electron_mask) + Sum(muon_mask) == 1") # require exactly one valid electron or muon
-
+    df = df.Define("jet_mask", "jet_pt > 20") # apply jet selections here
     df = df.Filter("Sum(jet_mask) >= 3") # require at least four valid jets
+    
+    # save dataframe to root file
+    df.Snapshot("Events", f'{out_dir}/dataframe_{dataset}_{todaysDate}.root')
 
     #df_tight = df.Filter("CICADAScore>=115")
     #df_nom = df.Filter("CICADAScore>=110")
@@ -137,6 +153,26 @@ def main(dataset, out_dir):
     hist.Write()
 
     df = define_lead_jet_variables(df)
+
+    print("Creating and writing histogram for number of jets")
+    histModel = ROOT.RDF.TH2DModel("nJet", "nJet", 100, 0, 256, 25, 0, 25)
+    hist = df.Histo2D(histModel, scoreStr, "jet_nObjects")
+    hist.Write()
+
+    print("Creating and writing histogram for number of electrons")
+    histModel = ROOT.RDF.TH2DModel("nElectron", "nElectron", 100, 0, 256, 10, 0, 10)
+    hist = df.Histo2D(histModel, scoreStr, "electron_nObjects")
+    hist.Write()
+
+    print("Creating and writing histogram for number of muons")
+    histModel = ROOT.RDF.TH2DModel("nMuon", "nMuon", 100, 0, 256, 10, 0, 10)
+    hist = df.Histo2D(histModel, scoreStr, "muon_nObjects")
+    hist.Write()
+
+    print("Creating and writing histogram for MET")
+    histModel = ROOT.RDF.TH2DModel("MET", "MET", 100, 0, 256, 100, 0, 500)
+    hist = df.Histo2D(histModel, scoreStr, "MET_pt")
+    hist.Write()
 
     print("Creating and writing histogram for leading jet pt")
     histModel = ROOT.RDF.TH2DModel("LeadJetPt", "LeadJetPt", 100, 0, 256, 100, 0, 500)
