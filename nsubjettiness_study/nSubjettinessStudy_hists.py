@@ -6,7 +6,7 @@ import numpy as np
 import datetime
 from sampleBuilder_nano import samples
 
-def main(dataset, out_dir):
+def main(dataset, out_dir, trigger):
 
     # get dataframe from samples
     print("Getting dataframes")
@@ -17,20 +17,29 @@ def main(dataset, out_dir):
 
     # create output ROOT file
     print("Creating output ROOT file")
-    fileName = f'{out_dir}/hists_nsubjettiness_{dataset}_{todaysDate}.root'
+    fileName = f'{out_dir}/hists_nsubjettiness_{dataset}_{trigger}_{todaysDate}.root'
     output_file = ROOT.TFile(
         fileName,
         'RECREATE'
     )
 
+    # apply trigger
+    if trigger!="None":
+        df = df.Filter(trigger)
+
+    if dataset=="TTbar":
+        jetObjStr = "ScoutingFatJet"
+    else:
+        jetObjStr = "ScoutingFatPFJetRecluster"
+
     # cut on fat jet pt
-    df = df.Define("goodFatJet_pt", "ScoutingFatJet_pt[ScoutingFatJet_pt>30]")
-    df = df.Define("goodFatJet_eta", "ScoutingFatJet_eta[ScoutingFatJet_pt>30]")
-    df = df.Define("goodFatJet_phi", "ScoutingFatJet_phi[ScoutingFatJet_pt>30]")
-    df = df.Define("goodFatJet_mass", "ScoutingFatJet_mass[ScoutingFatJet_pt>30]")
-    df = df.Define("goodFatJet_tau1", "ScoutingFatJet_tau1[ScoutingFatJet_pt>30]")
-    df = df.Define("goodFatJet_tau2", "ScoutingFatJet_tau2[ScoutingFatJet_pt>30]")
-    df = df.Define("goodFatJet_tau3", "ScoutingFatJet_tau3[ScoutingFatJet_pt>30]")
+    df = df.Define("goodFatJet_pt", f"{jetObjStr}_pt[{jetObjStr}_pt>30]")
+    df = df.Define("goodFatJet_eta", f"{jetObjStr}_eta[{jetObjStr}_pt>30]")
+    df = df.Define("goodFatJet_phi", f"{jetObjStr}_phi[{jetObjStr}_pt>30]")
+    df = df.Define("goodFatJet_mass", f"{jetObjStr}_mass[{jetObjStr}_pt>30]")
+    df = df.Define("goodFatJet_tau1", f"{jetObjStr}_tau1[{jetObjStr}_pt>30]")
+    df = df.Define("goodFatJet_tau2", f"{jetObjStr}_tau2[{jetObjStr}_pt>30]")
+    df = df.Define("goodFatJet_tau3", f"{jetObjStr}_tau3[{jetObjStr}_pt>30]")
     df = df.Define("goodFatJet_tau32", "goodFatJet_tau3/goodFatJet_tau2")
     df = df.Define("goodFatJet_tau21", "goodFatJet_tau2/goodFatJet_tau1")
 
@@ -87,7 +96,13 @@ if __name__ == "__main__":
         default = ".",
         help="directory to save files to"
     )
+    parser.add_argument(
+        "-t",
+        "--trigger",
+        default = "None",
+        help="which trigger to apply to dataset"
+    )
 
     args = parser.parse_args()
 
-    main(args.dataset, args.out_dir)
+    main(args.dataset, args.out_dir, args.trigger)

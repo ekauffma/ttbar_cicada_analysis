@@ -16,7 +16,8 @@ treeNames = [
 ]
 
 samples = {
-    "TTbar": sample(listOfFiles = filePaths["TTbar"], treeNames = treeNames)
+    "TTbar": sample(listOfFiles = filePaths["TTbar"], treeNames = treeNames),
+    "Scouting2024I": sample(listOfFiles = filePaths["Scouting2024I"], treeNames = treeNames)
 }
 
 f.close()

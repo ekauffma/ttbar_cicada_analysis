@@ -9,7 +9,7 @@ colors = [ROOT.kRed+3, ROOT.kRed+1, ROOT.kRed-4, ROOT.kOrange+8, ROOT.kOrange+1,
 
 todaysDate = datetime.date.today().strftime('%Y%m%d')
 
-def drawComparisonPlot(hist, hist_name, x_axis_title, output_dir, norm=True):
+def drawComparisonPlot(hist, hist_name, x_axis_title, output_dir, dataset, trigger, norm=True):
 
     # root style options
     ROOT.gStyle.SetTitleSize(0.05, "X")
@@ -60,7 +60,7 @@ def drawComparisonPlot(hist, hist_name, x_axis_title, output_dir, norm=True):
         # set axis titles and ranges for first histogram
         if first:
             histograms[-1].SetStats(0)
-            histograms[-1].SetTitle("")
+            histograms[-1].SetTitle(f"{hist_name} Dataset: {dataset} Trigger: {trigger}")
             histograms[-1].GetXaxis().SetTitle(x_axis_title)
             histograms[-1].GetXaxis().SetTitleSize(0.05)
             if norm:
@@ -87,23 +87,23 @@ def drawComparisonPlot(hist, hist_name, x_axis_title, output_dir, norm=True):
     c.SetLogy()
     c.Update()
     c.Draw()
-    c.SaveAs(f"{output_dir}/{hist_name}_{todaysDate}.png")
+    c.SaveAs(f"{output_dir}/{hist_name}_{dataset}_{trigger}_{todaysDate}.png")
     c.Close()
 
     return
 
-def main(input_file, output_dir):
+def main(input_file, output_dir, dataset, trigger):
 
     # open root file
     f = ROOT.TFile(input_file)
     
     # get histogram and create plot for tau21
     hist_tau21 = f.Get("JetMassTau21")
-    drawComparisonPlot(hist_tau21, "tau21", "Jet Mass", output_dir)
+    drawComparisonPlot(hist_tau21, "tau21", "Jet Mass", output_dir, dataset, trigger)
     
     # get histogram and create plot for tau32
     hist_tau32 = f.Get("JetMassTau32")
-    drawComparisonPlot(hist_tau32, "tau32", "Jet Mass", output_dir)
+    drawComparisonPlot(hist_tau32, "tau32", "Jet Mass", output_dir, dataset, trigger)
     
 
 if __name__ == "__main__":
@@ -111,7 +111,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="This program creates comparison plots for different nsubjettiness thresholds")
     parser.add_argument("-i", "--input_file", help="path to input ROOT file containing hists")
     parser.add_argument("-o", "--output_dir", default='./', help="directory to save output plots")
+    parser.add_argument("-d", "--dataset")
+    parser.add_argument("-t", "--trigger", default = "None")
 
     args = parser.parse_args()
 
-    main(args.input_file, args.output_dir)
+    main(args.input_file, args.output_dir, args.dataset, args.trigger)
